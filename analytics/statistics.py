@@ -20,29 +20,37 @@ def seasonal_statistics(df: pd.DataFrame) -> pd.DataFrame:
     stats = df.groupby("season").agg(
         mean_temperature=("temperature", "mean"), std_temperature=("temperature", "std")
     )
-    stats["lower_bound"] = stats["mean_temperature"] - 1 * stats["std_temperature"]
-    stats["upper_bound"] = stats["mean_temperature"] + 1 * stats["std_temperature"]
+    stats["lower_bound"] = stats["mean_temperature"] - 2 * stats["std_temperature"]
+    stats["upper_bound"] = stats["mean_temperature"] + 2 * stats["std_temperature"]
     return stats
 
 
 def calculate_moving_average_city(city_data):
+    city_data = city_data.sort_index()
     city_data["rolling_mean"] = city_data["temperature"].rolling(window=30).mean()
-    return city_data
+    return city_data["rolling_mean"]
 
 
-def detect_anomalies(data, stats=None):
-    if not stats:
-        stats = seasonal_statistics(data)
+def calculate_moving_std_city(city_data):
+    city_data = city_data.sort_index()
+    city_data["rolling_mean"] = city_data["temperature"].rolling(window=30).std()
+    return city_data["rolling_mean"]
 
-    anomalies = []
-    for season, row in stats.iterrows():
-        city_season_data = data[(data["season"] == season)]
-        outliers = city_season_data[
-            (city_season_data["temperature"] < row["lower_bound"])
-            | (city_season_data["temperature"] > row["upper_bound"])
-        ]
-        anomalies.append(outliers)
-    return pd.concat(anomalies)
+
+def detect_anomalies(df):
+    data = df.copy()
+    data['rolling_mean'] = calculate_moving_average_city(data)
+    data['rolling_std'] = calculate_moving_std_city(data)
+
+    data['upper_bound'] = data['rolling_mean'] + 2 * data['rolling_std']
+    data['lower_bound'] = data['rolling_mean'] - 2 * data['rolling_std']
+
+    anomalies = data[
+        (data['temperature'] < data['lower_bound']) |
+        (data['temperature'] > data['upper_bound'])
+    ]
+
+    return anomalies
 
 
 def plot_long_term_trends(data):

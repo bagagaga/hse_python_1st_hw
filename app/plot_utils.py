@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+from analytics.statistics import calculate_moving_average_city
 
 
 def plot_temperature_series(df, anomalies):
@@ -9,11 +10,14 @@ def plot_temperature_series(df, anomalies):
     sns.scatterplot(
         data=anomalies, x="timestamp", y="temperature", color="red", label="Аномалии"
     )
-    plt.axhline(
-        df["temperature"].mean(),
-        color="blue",
-        linestyle="--",
-        label="Средняя температура",
+    data = df.copy()
+    data['rolling_mean'] = calculate_moving_average_city(df)
+    sns.lineplot(
+        data=data[::10],
+        x="timestamp",
+        y="temperature",
+        label="Скользящая средняя температура",
+        color="magenta",
     )
     plt.legend()
     plt.title("Временной ряд температуры")
