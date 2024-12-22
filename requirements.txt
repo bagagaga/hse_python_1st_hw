@@ -5,3 +5,4 @@ aiohttp
 datetime
 matplotlib
 seaborn
+python-dotenv
